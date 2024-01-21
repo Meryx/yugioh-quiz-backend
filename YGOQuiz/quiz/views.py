@@ -67,7 +67,7 @@ def random_image_info(request):
                     question = 'What is the name of this card?'
                 
                 if random_number == 1: #type mode
-                    all_spell_races = ['Normal Spell', 'Normal Trap', 'Continuous Spell', 'Continuous Trap', 'Counter Trap', 'Equip', 'Field', 'Quick-Play', 'Ritual']
+                    all_spell_races = ['Normal Spell', 'Normal Trap', 'Continuous Spell', 'Continuous Trap', 'Counter', 'Equip', 'Field', 'Quick-Play', 'Ritual']
                     random.shuffle(all_spell_races)
                     correct_choice = race_value
                     if correct_choice == 'Normal':
@@ -101,7 +101,7 @@ def random_image_info(request):
                     question = 'What is the name of this card?'
                 
                 if random_number == 1: #type mode
-                    all_trap_races = ['Normal Spell', 'Normal Trap', 'Continuous Spell', 'Continuous Trap', 'Counter Trap', 'Equip', 'Field', 'Quick-Play', 'Ritual']
+                    all_trap_races = ['Normal Spell', 'Normal Trap', 'Continuous Spell', 'Continuous Trap', 'Counter', 'Equip', 'Field', 'Quick-Play', 'Ritual']
                     random.shuffle(all_trap_races)
                     correct_choice = race_value
                     if correct_choice == 'Normal':
