@@ -229,6 +229,9 @@ def generate_quiz_data(json_data, images_json, random_image_filename):
 
     if card_type.lower().endswith('monster'):
         card_type = 'Monster'
+    
+    if card_type.lower().endswith('token'):
+        card_type = 'Monster'
 
     question_generators = {
         'Spell Card': generate_spell_or_trap_question,
