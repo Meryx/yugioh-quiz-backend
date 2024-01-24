@@ -117,6 +117,8 @@ def generate_monster_atk_question(json_data, *args, **kwargs):
 
     choices = list(selected_atks) + [correct_attack]
     random.shuffle(choices)
+    choices = ["ATK " + choice for choice in choices]
+    correct_attack = "ATK " + correct_attack
     question = 'What is the ATK of this monster?'
 
     return {
@@ -137,6 +139,8 @@ def generate_monster_def_question(json_data, *args, **kwargs):
 
     choices = list(selected_defs) + [correct_defense]
     random.shuffle(choices)
+    choices = ["DEF " + choice for choice in choices]
+    correct_defense = "DEF " + correct_defense
     question = 'What is the DEF of this monster?'
 
     return {
@@ -163,6 +167,10 @@ def generate_monster_level_question(json_data, images_json, random_image_filenam
     incorrect_choices = [lvl for lvl in shuffled_levels if lvl != correct_choice][:3]
     choices = incorrect_choices + [correct_choice]
     random.shuffle(choices)
+
+    if json_data['type'] == 'Link Monster':
+        choices = [f"LINK-{choice}" for choice in choices]
+        correct_choice = f"LINK-{correct_choice}"
 
     return {
         "question": question,
