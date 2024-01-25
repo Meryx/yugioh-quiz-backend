@@ -5,6 +5,12 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from PIL import Image
 from django.conf import settings
+from django.core.files.storage import default_storage
+import boto3
+import io
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def home(request):
     return HttpResponse("Hello, Django!")
@@ -29,13 +35,30 @@ ALL_MONSTER_DEF = [str(i) for i in range(0, 5000, 50)]
 ALL_MONSTER_ATK = [str(i) for i in range(0, 5000, 50)]
 WEIGHTS = [5 if int(defense) <= 3000 else 1 for defense in ALL_MONSTER_DEF]
 
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+
+session = boto3.session.Session(
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name=AWS_S3_REGION_NAME
+)
+
+s3_client = session.client('s3')
+
 def resize_image(image):
     return image.resize(IMG_SIZE, IMG_RESAMPLE_MODE)
 
 def fetch_image(request):
     image_name = request.GET.get('name')
-    image_path = os.path.join(IMG_DIR, f"{image_name}.{IMG_EXT}")
-    image = Image.open(image_path)
+    print(image_name)
+    image_path = f"{image_name}.{IMG_EXT}"
+    
+    image = s3_client.get_object(Bucket=AWS_STORAGE_BUCKET_NAME, Key=image_path)
+    image_content = image['Body'].read()
+    image = Image.open(io.BytesIO(image_content))
 
     resized_image = resize_image(image)
 
@@ -47,10 +70,13 @@ def get_three_random_names(images_json, random_image_filename):
     three_random_names = []
     while len(three_random_names) < 3:
         random_name = random.choice(images_json)
+
+        response = s3_client.get_object(Bucket=AWS_STORAGE_BUCKET_NAME, Key=random_name)
+        json_content = response['Body'].read().decode('utf-8')
+
         if random_name != random_image_filename:
-            with open(os.path.join(IMG_DIR, random_name), 'r') as random_file:
-                random_json_data = json.load(random_file)
-                three_random_names.append(random_json_data['name'])
+            random_json_data = json.loads(json_content)
+            three_random_names.append(random_json_data['name'])
     return three_random_names
 
 def generate_name_question(json_data, images_json, random_image_filename):
@@ -239,9 +265,20 @@ def generate_quiz_data(json_data, images_json, random_image_filename):
 
 def random_image_info(request):
 
-    images_json = [file for file in os.listdir(IMG_DIR) if file.lower().endswith('.json')]
+    # image_path = f"images/{image_name}.{IMG_EXT}"
+    # image = s3_client.get_object(Bucket=AWS_STORAGE_BUCKET_NAME, Key=image_path)
+    # image_content = image['Body'].read()
+    # image = Image.open(io.BytesIO(image_content))
+
+    # files = os.listdir(IMG_DIR)
+
+    response = s3_client.list_objects_v2(Bucket=AWS_STORAGE_BUCKET_NAME, Prefix="images/")
+    images_json = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].lower().endswith('.json')]
+
     random_image_json = random.choice(images_json)
-    random_image_path = os.path.join(IMG_DIR, random_image_json)
+
+    response = s3_client.get_object(Bucket=AWS_STORAGE_BUCKET_NAME, Key=random_image_json)
+    json_content = response['Body'].read().decode('utf-8')
 
     response_data = {
         "name": random_image_json,
@@ -251,10 +288,9 @@ def random_image_info(request):
         "question": None
     }
 
-    with open(random_image_path, 'r') as file:
-        json_data = json.load(file)
-        quiz_data = generate_quiz_data(json_data, images_json, random_image_json)
+    json_data = json.loads(json_content)
+    quiz_data = generate_quiz_data(json_data, images_json, random_image_json)
 
-        response_data['race'] = json_data['race']
-        response_data.update(quiz_data)
-        return JsonResponse(response_data)
+    response_data['race'] = json_data['race']
+    response_data.update(quiz_data)
+    return JsonResponse(response_data)
